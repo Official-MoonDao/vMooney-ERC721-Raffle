@@ -45,7 +45,7 @@ contract vMooneyNFTRaffle is ERC721, Ownable, Pausable, VRFConsumerBaseV2 {
     uint256[] public requestIds;
     uint256 public lastRequestId;
 
-    uint16 requestConfirmations = 4;
+    uint16 requestConfirmations = 6;
     uint32 numWords = 1;
     uint256 public maxLen = 500;
 
