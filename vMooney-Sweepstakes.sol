@@ -47,34 +47,35 @@ contract vMooneyNFTRaffle is ERC721, Ownable, Pausable, VRFConsumerBaseV2 {
 
     uint16 requestConfirmations = 6;
     uint32 numWords = 1;
-    uint256 public maxLen = 500;
+    uint256 public maxTokens = 500;
 
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIdCounter;
 
     address public vMooneyAddress = 0x6899EcEeAF3Fb4D5854Dc090F62EA5D97E301664;
 
+    bool internal locked;
+
     //events
     event RequestSent(uint256 requestId, uint32 numWords);
     event RequestFulfilled(uint256 requestId, uint256[] randomWords);
 
-
-    //modifiers
-    modifier hasVMooney {
-        (bool success, bytes memory result) = vMooneyAddress.call(abi.encodeWithSignature("locked__end(address)", msg.sender));
-        require(abi.decode(result, (uint256)) > block.timestamp, "Wallet doesn't have vMooney");
-        _;
-    }
-
     constructor() VRFConsumerBaseV2(0x2Ca8E0C643bDe4C2E08ab1fA0da3401AdAD7734D) ERC721("TTZG Test", "TTZG") {
           COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator_);
+    }
+
+    //modifiers
+    modifier reEntrancyGuard(){ 
+        require(!locked, "No re-entrancy");
+        locked = true;
+        _;
+        locked = false;
     }
 
     //functions
     function setsubscript(uint64 subscriptionId_) external onlyOwner {
         s_subscriptionId = subscriptionId_;
     }
-
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory){
         require(_exists(tokenId), "URI query for nonexistent token");
@@ -89,10 +90,12 @@ contract vMooneyNFTRaffle is ERC721, Ownable, Pausable, VRFConsumerBaseV2 {
         _unpause();
     }
 
-    function safeMint() public hasVMooney {
+    function safeMint() public reEntrancyGuard {
+        (bool success, bytes memory result) = vMooneyAddress.call(abi.encodeWithSignature("locked__end(address)", msg.sender));
+        require(abi.decode(result, (uint256)) > block.timestamp, "Wallet doesn't have vMooney");
         require(this.balanceOf(msg.sender) < 1, "Wallet already owns a ticket");
         uint256 tokenId = _tokenIdCounter.current();
-        require(tokenId < 500, "Tickets are sold out");
+        require(tokenId < maxTokens, "Tickets are sold out");
         _tokenIdCounter.increment();
         _safeMint(msg.sender, tokenId);
     }
