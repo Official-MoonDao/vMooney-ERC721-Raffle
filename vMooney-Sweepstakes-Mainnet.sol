@@ -1,11 +1,6 @@
 /*
-  ___ ___  _    ___ _  _   ___ ___  ___ _____ ___ ___ 
- / __/ _ \| |  |_ _| \| | | __/ _ \/ __|_   _| __| _ \
-| (_| (_) | |__ | || .` | | _| (_) \__ \ | | | _||   /
- \___\___/|____|___|_|\_| |_| \___/|___/ |_| |___|_|_\
-
     NAME: TICKET-TO-ZERO-G 
-
+    CHAIN: MAINNET
 */
 
 // SPDX-License-Identifier: MIT
@@ -19,13 +14,14 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
-contract vMooneyNFTRaffle is ERC721, Ownable, Pausable, VRFConsumerBaseV2 {
+
+contract vMooneySweeptstakes is ERC721, Ownable, Pausable, VRFConsumerBaseV2 {
     VRFCoordinatorV2Interface COORDINATOR;
     LinkTokenInterface LINKTOKEN =
-        LinkTokenInterface(0x326C977E6efc84E512bB9C30f76E30c160eD06FB); //https://vrf.chain.link/goerli
+        LinkTokenInterface(0x514910771AF9Ca656af840dff83E8264EcF986CA); //https://vrf.chain.link/mainnet
     bytes32 keyHash =
-        0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15; //150gwei goerli
-    address vrfCoordinator_ = 0x2Ca8E0C643bDe4C2E08ab1fA0da3401AdAD7734D;
+        0x8af398995b04c28e9951adb9721ef74c74f93e6a478f39e7e0777be13527e7ef; //200gwei mainnet
+    address vrfCoordinator_ = 0x271682DEB8C4E0901D1a1550aD2e64D568E69909;
 
    struct RequestStatus {
         bool paid; // paid?
@@ -38,7 +34,6 @@ contract vMooneyNFTRaffle is ERC721, Ownable, Pausable, VRFConsumerBaseV2 {
 
     address public winner;
 
-
     //VRF subscription ID.
     uint64 s_subscriptionId;
 
@@ -47,24 +42,25 @@ contract vMooneyNFTRaffle is ERC721, Ownable, Pausable, VRFConsumerBaseV2 {
 
     uint16 requestConfirmations = 6;
     uint32 numWords = 1;
-    uint256 public maxTokens = 500;
+    uint256 public maxTokens = 162; //gravitational pull of the moon (1.62 m/s^2)  
+    bool public ticketTransfer = false;
 
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIdCounter;
 
-    address public vMooneyAddress = 0x6899EcEeAF3Fb4D5854Dc090F62EA5D97E301664;
+    address public vMooneyAddress = 0xCc71C80d803381FD6Ee984FAff408f8501DB1740; //mainnet
 
-    bool internal locked;
+    bool internal locked; //re-entry lock
 
-    //events
+    //EVENTS
     event RequestSent(uint256 requestId, uint32 numWords);
     event RequestFulfilled(uint256 requestId, uint256[] randomWords);
 
-    constructor() VRFConsumerBaseV2(0x2Ca8E0C643bDe4C2E08ab1fA0da3401AdAD7734D) ERC721("TTZG Test", "TTZG") {
+    constructor() VRFConsumerBaseV2(0x271682DEB8C4E0901D1a1550aD2e64D568E69909) ERC721("Ticket to Zero-G", "TTZG") {
           COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator_);
     }
 
-    //modifiers
+    //MODIFIERS
     modifier reEntrancyGuard(){ 
         require(!locked, "No re-entrancy");
         locked = true;
@@ -72,14 +68,18 @@ contract vMooneyNFTRaffle is ERC721, Ownable, Pausable, VRFConsumerBaseV2 {
         locked = false;
     }
 
-    //functions
-    function setsubscript(uint64 subscriptionId_) external onlyOwner {
+    //FUNCTIONS
+    function setSubscript(uint64 subscriptionId_) external onlyOwner {
         s_subscriptionId = subscriptionId_;
+    }
+
+    function setTicketTransfer(bool ticketTransfer_) external onlyOwner {
+        ticketTransfer = ticketTransfer_;
     }
 
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory){
         require(_exists(tokenId), "URI query for nonexistent token");
-        return "ipfs://QmfQcvcD9UpVYyxC8hU9hQ71DEf5S3YVYMarduWQCM7oCP";
+        return "ipfs://"; //ticket metadata
     }
 
     function pause() public onlyOwner {
@@ -106,6 +106,8 @@ contract vMooneyNFTRaffle is ERC721, Ownable, Pausable, VRFConsumerBaseV2 {
         override
     {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
+        //non-transferable after mint until ticketTransfer = true
+        if(from != address(0x0000000000000000000000000000000000000000) && !ticketTransfer) revert("Cannot transfer tickets until the winner is chosen");
     }
 
     function chooseWinner() external onlyOwner returns(uint256 requestId) {
