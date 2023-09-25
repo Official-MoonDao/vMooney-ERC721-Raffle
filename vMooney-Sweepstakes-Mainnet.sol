@@ -17,16 +17,16 @@ import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 
 contract vMooneySweeptstakes is ERC721, Ownable, Pausable, VRFConsumerBaseV2 {
     VRFCoordinatorV2Interface COORDINATOR;
-    LinkTokenInterface LINKTOKEN =
+    LinkTokenInterface immutable LINKTOKEN =
         LinkTokenInterface(0x514910771AF9Ca656af840dff83E8264EcF986CA); //https://vrf.chain.link/mainnet
-    bytes32 keyHash =
+    bytes32 immutable keyHash =
         0x8af398995b04c28e9951adb9721ef74c74f93e6a478f39e7e0777be13527e7ef; //200gwei mainnet
-    address vrfCoordinator_ = 0x271682DEB8C4E0901D1a1550aD2e64D568E69909;
+    address immutable vrfCoordinator_ = 0x271682DEB8C4E0901D1a1550aD2e64D568E69909;
 
    struct RequestStatus {
         bool paid; // paid?
         bool fulfilled; // whether the request has been successfully fulfilled
-        uint256[] randomWords;
+        uint256[] randomWords; 
     }
     
     mapping(uint256 => RequestStatus)
@@ -40,15 +40,15 @@ contract vMooneySweeptstakes is ERC721, Ownable, Pausable, VRFConsumerBaseV2 {
     uint256[] public requestIds;
     uint256 public lastRequestId;
 
-    uint16 requestConfirmations = 6;
-    uint32 numWords = 1;
-    uint256 public maxTokens = 162; //gravitational pull of the moon (1.62 m/s^2)  
+    uint16 immutable requestConfirmations = 6;
+    uint32 immutable numWords = 1;
+    uint256 immutable maxTokens = 162; //gravitational pull of the moon (1.62 m/s^2)  
     bool public ticketTransfer = false;
 
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIdCounter;
 
-    address public vMooneyAddress = 0xCc71C80d803381FD6Ee984FAff408f8501DB1740; //mainnet
+    address public immutable vMooneyAddress = 0xCc71C80d803381FD6Ee984FAff408f8501DB1740; //mainnet
 
     bool internal locked; //re-entry lock
 
@@ -107,7 +107,7 @@ contract vMooneySweeptstakes is ERC721, Ownable, Pausable, VRFConsumerBaseV2 {
     {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
         //non-transferable after mint until ticketTransfer = true
-        if(from != address(0x0000000000000000000000000000000000000000) && !ticketTransfer) revert("Cannot transfer tickets until the winner is chosen");
+        if(from != address(0x0) && !ticketTransfer) revert("Cannot transfer tickets until the winner is chosen");
     }
 
     function chooseWinner() external onlyOwner returns(uint256 requestId) {
